@@ -260,11 +260,3 @@ Versão atual:
 ```text
 0.1.0
 ```
-
----
-
-## Licença
-
-Este projeto é disponibilizado sob a licença MIT.
-
-Consulte o arquivo `LICENSE` para mais informações.
