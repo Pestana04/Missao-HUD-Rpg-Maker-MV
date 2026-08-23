@@ -1,7 +1,5 @@
-// SPDX-License-Identifier: MIT
-
 /*:
- * @plugindesc v0.2.1 - HUD permanente integrada ao Galv's Quest Log.
+ * @plugindesc v0.3.0 - HUD permanente integrada ao Galv's Quest Log com aviso de missão concluída.
  * @author Gustavo Pestana
  *
  * @param Largura
@@ -35,6 +33,46 @@
  * @type number
  * @default 18
  *
+ * @param LarguraConclusao
+ * @type number
+ * @default 440
+ *
+ * @param AlturaConclusao
+ * @type number
+ * @default 96
+ *
+ * @param AtrasoConclusao
+ * @type number
+ * @desc Frames antes do aviso de missão concluída aparecer.
+ * @default 20
+ *
+ * @param TempoConclusao
+ * @type number
+ * @desc Tempo que o aviso permanece completamente visível.
+ * @default 180
+ *
+ * @param FadeConclusao
+ * @type number
+ * @desc Velocidade do fade do aviso de conclusão.
+ * @default 18
+ *
+ * @param SomConclusao
+ * @type file
+ * @dir audio/se/
+ * @default
+ *
+ * @param VolumeConclusao
+ * @type number
+ * @min 0
+ * @max 100
+ * @default 80
+ *
+ * @param PitchConclusao
+ * @type number
+ * @min 50
+ * @max 150
+ * @default 100
+ *
  * @help
  * ============================================================================
  * MissaoHUD
@@ -44,32 +82,50 @@
  *
  * Coloque este plugin ABAIXO do Galv_QuestLog.
  *
+ * Ordem recomendada:
+ *
+ * Galv_QuestLog
+ * MissaoHUD
+ * TutorialHUD
+ *
+ * ============================================================================
+ * INTEGRAÇÃO
+ * ============================================================================
+ *
  * A HUD acompanha automaticamente:
  *
  * Galv.QUEST.track(id);
  * Galv.QUEST.objective(id, objetivo, status);
+ * Galv.QUEST.complete(id);
+ * Galv.QUEST.fail(id);
  *
  * Também acompanha o rastreamento realizado manualmente
  * dentro da interface do Galv's Quest Log.
  *
- * ---------------------------------------------------------------------------
+ * ============================================================================
  * SCRIPT CALLS
- * ---------------------------------------------------------------------------
+ * ============================================================================
  *
  * MissaoHUD.hide();
- * Esconde temporariamente.
+ * Esconde temporariamente a HUD principal.
  *
  * MissaoHUD.show();
  * Mostra novamente.
  *
  * MissaoHUD.clear();
- * Limpa a HUD.
+ * Limpa a HUD principal.
  *
  * MissaoHUD.sync();
  * Força sincronização com a quest rastreada pelo Galv.
  *
  * MissaoHUD.set("Missão", "Objetivo");
  * Permite exibição manual sem utilizar o Galv.
+ *
+ * MissaoHUD.silentComplete(id);
+ * Conclui uma missão sem mostrar o banner central.
+ *
+ * MissaoHUD.notifyComplete(id);
+ * Mostra manualmente o aviso de conclusão de uma missão.
  *
  * ============================================================================
  */
@@ -131,7 +187,44 @@ Imported.MissaoHUD = true;
             "#ffffff",
 
         objective:
-            "#f2f2f2"
+            "#f2f2f2",
+
+        completeWidth:
+            Number(parameters["LarguraConclusao"] || 440),
+
+        completeHeight:
+            Number(parameters["AlturaConclusao"] || 96),
+
+        completeDelay:
+            Number(parameters["AtrasoConclusao"] || 20),
+
+        completeTime:
+            Number(parameters["TempoConclusao"] || 180),
+
+        completeFade:
+            Number(parameters["FadeConclusao"] || 18),
+
+        completeSe:
+            String(parameters["SomConclusao"] || ""),
+
+        completeVolume:
+            Number(parameters["VolumeConclusao"] || 80),
+
+        completePitch:
+            Number(parameters["PitchConclusao"] || 100),
+
+        completeBackground:
+            "rgba(12,12,16,0.86)",
+
+        completeBorder:
+            "rgba(214,145,78,0.90)",
+
+        completeTitle:
+            "#e1a05f",
+
+        completeQuest:
+            "#ffffff"
+
     };
 
 
@@ -192,6 +285,10 @@ Imported.MissaoHUD = true;
         window.MissaoHUD || {};
 
 
+    MissaoHUD._completionQueue = [];
+    MissaoHUD._suppressCompleteBanner = false;
+
+
     MissaoHUD.data = function() {
 
         if (!$gameSystem._missaoHudData) {
@@ -202,6 +299,39 @@ Imported.MissaoHUD = true;
         }
 
         return $gameSystem._missaoHudData;
+
+    };
+
+
+    // ========================================================================
+    // MESSAGE BUSY
+    // ========================================================================
+
+    MissaoHUD.isMessageBusy = function() {
+
+        if (
+            $gameMessage &&
+            $gameMessage.isBusy()
+        ) {
+
+            return true;
+
+        }
+
+        var scene =
+            SceneManager._scene;
+
+        if (
+            scene &&
+            scene._messageWindow &&
+            scene._messageWindow.openness > 0
+        ) {
+
+            return true;
+
+        }
+
+        return false;
 
     };
 
@@ -253,7 +383,7 @@ Imported.MissaoHUD = true;
             quest._objectives || [];
 
 
-        // Primeiro procura um objetivo explicitamente ACTIVE = 0.
+        // Primeiro objetivo explicitamente ativo.
         for (
             var i = 0;
             i < objectives.length;
@@ -269,8 +399,7 @@ Imported.MissaoHUD = true;
         }
 
 
-        // Se a quest acabou de ser criada e ainda não possui
-        // estados definidos, assume o primeiro objetivo.
+        // Quest recém-criada.
         if (statuses.length === 0) {
 
             return 0;
@@ -278,8 +407,8 @@ Imported.MissaoHUD = true;
         }
 
 
-        // Se acabamos de completar um objetivo e o próximo
-        // ainda não foi ativado, mantém o objetivo atual.
+        // Mantém o objetivo anterior enquanto
+        // o próximo ainda não foi ativado.
         var state =
             this.data();
 
@@ -319,7 +448,6 @@ Imported.MissaoHUD = true;
             Galv.QUEST.isTracked();
 
 
-        // Nenhuma missão rastreada
         if (!trackedId) {
 
             this.clear();
@@ -349,9 +477,6 @@ Imported.MissaoHUD = true;
             state.objectiveIndex;
 
 
-        // IMPORTANTE:
-        // Antes de alterar trackedQuestId,
-        // calcula corretamente o objetivo.
         var objectiveIndex =
             this.findCurrentObjective(quest);
 
@@ -507,7 +632,90 @@ Imported.MissaoHUD = true;
 
 
     // ========================================================================
-    // SPRITE
+    // AVISO DE MISSÃO CONCLUÍDA
+    // ========================================================================
+
+    MissaoHUD.notifyComplete = function(id, questName) {
+
+        if (!questName) {
+
+            var quest =
+                this.getGalvQuest(id);
+
+            if (quest && quest.name) {
+
+                questName =
+                    quest.name();
+
+            }
+
+        }
+
+
+        if (!questName) {
+
+            questName =
+                "Missão";
+
+        }
+
+
+        this._completionQueue.push({
+
+            id:
+                Number(id || 0),
+
+            name:
+                String(questName)
+
+        });
+
+    };
+
+
+    // ========================================================================
+    // CONCLUSÃO SILENCIOSA
+    // ========================================================================
+
+    MissaoHUD.silentComplete = function(id) {
+
+        if (
+            !window.Galv ||
+            !Galv.QUEST ||
+            typeof Galv.QUEST.complete !==
+            "function"
+        ) {
+
+            return;
+
+        }
+
+
+        this._suppressCompleteBanner =
+            true;
+
+
+        try {
+
+            return Galv.QUEST.complete(
+                id,
+                true
+            );
+
+        }
+
+        finally {
+
+            this._suppressCompleteBanner =
+                false;
+
+        }
+
+    };
+
+
+    // ========================================================================
+    // SPRITE PRINCIPAL
     // ========================================================================
 
     function Sprite_MissaoHUD() {
@@ -572,43 +780,7 @@ Imported.MissaoHUD = true;
 
     Sprite_MissaoHUD.prototype.isMessageBusy = function() {
 
-        if (
-            $gameMessage &&
-            $gameMessage.isBusy()
-        ) {
-
-            return true;
-
-        }
-
-
-        var scene =
-            SceneManager._scene;
-
-
-        if (
-            scene &&
-            scene._messageWindow
-        ) {
-
-            var window =
-                scene._messageWindow;
-
-
-            // A janela ainda está fisicamente aberta,
-            // mesmo durante a troca entre páginas.
-            if (
-                window.openness > 0
-            ) {
-
-                return true;
-
-            }
-
-        }
-
-
-        return false;
+        return MissaoHUD.isMessageBusy();
 
     };
 
@@ -655,10 +827,7 @@ Imported.MissaoHUD = true;
             MissaoHUD.data();
 
 
-        // ------------------------------------------------------------
         // Durante diálogos
-        // ------------------------------------------------------------
-
         if (this.isMessageBusy()) {
 
             state.messageCooldown =
@@ -673,10 +842,7 @@ Imported.MissaoHUD = true;
         }
 
 
-        // ------------------------------------------------------------
         // Segurança após diálogo
-        // ------------------------------------------------------------
-
         if (
             state.messageCooldown > 0
         ) {
@@ -692,10 +858,7 @@ Imported.MissaoHUD = true;
         }
 
 
-        // ------------------------------------------------------------
         // Delay antes de mostrar
-        // ------------------------------------------------------------
-
         if (
             state.pendingShowFrames > 0
         ) {
@@ -711,10 +874,6 @@ Imported.MissaoHUD = true;
         }
 
 
-        // ------------------------------------------------------------
-        // Mostrar?
-        // ------------------------------------------------------------
-
         var canShow =
 
             state.visible &&
@@ -726,9 +885,6 @@ Imported.MissaoHUD = true;
 
         if (canShow) {
 
-
-            // O contador de "Novo" só começa
-            // quando a HUD realmente vai aparecer.
 
             if (
                 state.newBadgePending
@@ -746,7 +902,6 @@ Imported.MissaoHUD = true;
             this.fadeIn();
 
 
-            // Tempo visível do "Novo"
             if (
                 this.opacity > 0 &&
                 state.newBadgeFrames > 0
@@ -893,7 +1048,6 @@ Imported.MissaoHUD = true;
         }
 
 
-        // Fundo
         bitmap.fillRect(
             0,
             0,
@@ -903,11 +1057,9 @@ Imported.MissaoHUD = true;
         );
 
 
-        // Borda
         this.drawBorder();
 
 
-        // Configuração geral da fonte
         bitmap.fontFace =
             "GameFont";
 
@@ -917,9 +1069,7 @@ Imported.MissaoHUD = true;
         bitmap.outlineWidth = 3;
 
 
-        // ------------------------------------------------------------
         // MISSÃO ATUAL
-        // ------------------------------------------------------------
 
         bitmap.fontSize = 16;
 
@@ -936,9 +1086,7 @@ Imported.MissaoHUD = true;
         );
 
 
-        // ------------------------------------------------------------
         // NOVO
-        // ------------------------------------------------------------
 
         if (
             state.newBadgeFrames > 0
@@ -961,9 +1109,7 @@ Imported.MissaoHUD = true;
         }
 
 
-        // ------------------------------------------------------------
         // LINHA
-        // ------------------------------------------------------------
 
         bitmap.fillRect(
             10,
@@ -974,9 +1120,7 @@ Imported.MissaoHUD = true;
         );
 
 
-        // ------------------------------------------------------------
         // NOME DA QUEST
-        // ------------------------------------------------------------
 
         bitmap.fontSize = 14;
 
@@ -993,9 +1137,7 @@ Imported.MissaoHUD = true;
         );
 
 
-        // ------------------------------------------------------------
         // OBJETIVO
-        // ------------------------------------------------------------
 
         bitmap.fontSize = 13;
 
@@ -1015,6 +1157,398 @@ Imported.MissaoHUD = true;
 
 
     // ========================================================================
+    // SPRITE DE MISSÃO CONCLUÍDA
+    // ========================================================================
+
+    function Sprite_MissaoComplete() {
+
+        this.initialize.apply(
+            this,
+            arguments
+        );
+
+    }
+
+
+    Sprite_MissaoComplete.prototype =
+        Object.create(Sprite.prototype);
+
+
+    Sprite_MissaoComplete.prototype.constructor =
+        Sprite_MissaoComplete;
+
+
+    Sprite_MissaoComplete.prototype.initialize = function() {
+
+        Sprite.prototype.initialize.call(this);
+
+        this.bitmap =
+            new Bitmap(
+                CFG.completeWidth,
+                CFG.completeHeight
+            );
+
+        this.anchor.x = 0.5;
+        this.anchor.y = 0.5;
+
+        this.opacity = 0;
+
+        this.scale.x = 0.96;
+        this.scale.y = 0.96;
+
+        this._phase = "idle";
+        this._timer = 0;
+        this._questName = "";
+
+        this.updatePosition();
+
+    };
+
+
+    Sprite_MissaoComplete.prototype.updatePosition = function() {
+
+        this.x =
+            Graphics.boxWidth / 2;
+
+        this.y =
+            Graphics.boxHeight / 2;
+
+    };
+
+
+    Sprite_MissaoComplete.prototype.update = function() {
+
+        Sprite.prototype.update.call(this);
+
+        this.updatePosition();
+
+
+        switch (this._phase) {
+
+            case "idle":
+
+                this.updateIdle();
+                break;
+
+            case "delay":
+
+                this.updateDelay();
+                break;
+
+            case "in":
+
+                this.updateFadeIn();
+                break;
+
+            case "hold":
+
+                this.updateHold();
+                break;
+
+            case "out":
+
+                this.updateFadeOut();
+                break;
+
+        }
+
+    };
+
+
+    Sprite_MissaoComplete.prototype.updateIdle = function() {
+
+        if (
+            MissaoHUD._completionQueue.length <= 0
+        ) {
+
+            return;
+
+        }
+
+
+        var data =
+            MissaoHUD._completionQueue.shift();
+
+        this._questName =
+            data.name;
+
+        this._timer =
+            CFG.completeDelay;
+
+        this.opacity = 0;
+
+        this.scale.x = 0.96;
+        this.scale.y = 0.96;
+
+        this.redraw();
+
+        this._phase =
+            "delay";
+
+    };
+
+
+    Sprite_MissaoComplete.prototype.updateDelay = function() {
+
+        // Não aparece no meio de uma caixa de diálogo.
+        if (
+            MissaoHUD.isMessageBusy()
+        ) {
+
+            return;
+
+        }
+
+
+        if (this._timer > 0) {
+
+            this._timer--;
+
+            return;
+
+        }
+
+
+        this.playSound();
+
+        this._phase =
+            "in";
+
+    };
+
+
+    Sprite_MissaoComplete.prototype.updateFadeIn = function() {
+
+        this.opacity =
+            Math.min(
+                255,
+                this.opacity +
+                CFG.completeFade
+            );
+
+
+        this.scale.x +=
+            (1.0 - this.scale.x) * 0.22;
+
+        this.scale.y =
+            this.scale.x;
+
+
+        if (this.opacity >= 255) {
+
+            this.opacity = 255;
+
+            this.scale.x = 1;
+            this.scale.y = 1;
+
+            this._timer =
+                CFG.completeTime;
+
+            this._phase =
+                "hold";
+
+        }
+
+    };
+
+
+    Sprite_MissaoComplete.prototype.updateHold = function() {
+
+        if (this._timer > 0) {
+
+            this._timer--;
+
+            return;
+
+        }
+
+
+        this._phase =
+            "out";
+
+    };
+
+
+    Sprite_MissaoComplete.prototype.updateFadeOut = function() {
+
+        this.opacity =
+            Math.max(
+                0,
+                this.opacity -
+                CFG.completeFade
+            );
+
+
+        if (this.opacity <= 0) {
+
+            this.opacity = 0;
+
+            this._questName = "";
+
+            this.bitmap.clear();
+
+            this._phase =
+                "idle";
+
+        }
+
+    };
+
+
+    Sprite_MissaoComplete.prototype.playSound = function() {
+
+        if (!CFG.completeSe) {
+
+            return;
+
+        }
+
+
+        AudioManager.playSe({
+
+            name:
+            CFG.completeSe,
+
+            volume:
+            CFG.completeVolume,
+
+            pitch:
+            CFG.completePitch,
+
+            pan:
+                0
+
+        });
+
+    };
+
+
+    Sprite_MissaoComplete.prototype.drawBorder = function() {
+
+        var bitmap =
+            this.bitmap;
+
+        var w =
+            CFG.completeWidth;
+
+        var h =
+            CFG.completeHeight;
+
+        var t = 2;
+
+
+        bitmap.fillRect(
+            0,
+            0,
+            w,
+            t,
+            CFG.completeBorder
+        );
+
+        bitmap.fillRect(
+            0,
+            h - t,
+            w,
+            t,
+            CFG.completeBorder
+        );
+
+        bitmap.fillRect(
+            0,
+            0,
+            t,
+            h,
+            CFG.completeBorder
+        );
+
+        bitmap.fillRect(
+            w - t,
+            0,
+            t,
+            h,
+            CFG.completeBorder
+        );
+
+    };
+
+
+    Sprite_MissaoComplete.prototype.redraw = function() {
+
+        var bitmap =
+            this.bitmap;
+
+        bitmap.clear();
+
+
+        bitmap.fillRect(
+            0,
+            0,
+            CFG.completeWidth,
+            CFG.completeHeight,
+            CFG.completeBackground
+        );
+
+
+        this.drawBorder();
+
+
+        bitmap.fontFace =
+            "GameFont";
+
+        bitmap.outlineColor =
+            "rgba(0,0,0,0.90)";
+
+        bitmap.outlineWidth = 3;
+
+
+        // TÍTULO
+
+        bitmap.fontSize = 20;
+
+        bitmap.textColor =
+            CFG.completeTitle;
+
+        bitmap.drawText(
+            "MISSÃO CONCLUÍDA",
+            20,
+            12,
+            CFG.completeWidth - 40,
+            28,
+            "center"
+        );
+
+
+        // LINHA
+
+        bitmap.fillRect(
+            55,
+            46,
+            CFG.completeWidth - 110,
+            1,
+            CFG.completeBorder
+        );
+
+
+        // NOME
+
+        bitmap.fontSize = 17;
+
+        bitmap.textColor =
+            CFG.completeQuest;
+
+        bitmap.drawText(
+            this._questName,
+            20,
+            54,
+            CFG.completeWidth - 40,
+            26,
+            "center"
+        );
+
+    };
+
+
+    // ========================================================================
     // SCENE MAP
     // ========================================================================
 
@@ -1028,11 +1562,20 @@ Imported.MissaoHUD = true;
             this
         );
 
+
         this._missaoHudSprite =
             new Sprite_MissaoHUD();
 
         this.addChild(
             this._missaoHudSprite
+        );
+
+
+        this._missaoCompleteSprite =
+            new Sprite_MissaoComplete();
+
+        this.addChild(
+            this._missaoCompleteSprite
         );
 
     };
@@ -1101,7 +1644,6 @@ Imported.MissaoHUD = true;
                     : 0;
 
 
-            // Uma missão foi rastreada
             if (after) {
 
                 MissaoHUD.syncFromGalv(
@@ -1110,8 +1652,6 @@ Imported.MissaoHUD = true;
 
             }
 
-                // O jogador clicou novamente
-            // e removeu o rastreamento
             else {
 
                 MissaoHUD.clear();
@@ -1147,8 +1687,6 @@ Imported.MissaoHUD = true;
                     );
 
 
-                // Só atualiza a HUD se esta
-                // for a missão rastreada.
                 if (
                     Galv.QUEST.isTracked &&
                     Galv.QUEST.isTracked() === id
@@ -1178,7 +1716,19 @@ Imported.MissaoHUD = true;
             function(id, hidePopup) {
 
                 var wasTracked =
-                    Galv.QUEST.isTracked();
+                    Galv.QUEST.isTracked
+                        ? Galv.QUEST.isTracked()
+                        : 0;
+
+
+                var questBefore =
+                    MissaoHUD.getGalvQuest(id);
+
+                var questName =
+                    questBefore &&
+                    questBefore.name
+                        ? questBefore.name()
+                        : "";
 
 
                 var result =
@@ -1188,12 +1738,29 @@ Imported.MissaoHUD = true;
                     );
 
 
+                // Remove corretamente o rastreamento
+                // da missão que acabou de ser concluída.
                 if (
                     wasTracked === id
                 ) {
 
-                    MissaoHUD.syncFromGalv(
-                        false
+                    _Galv_QUEST_track.call(
+                        this
+                    );
+
+                    MissaoHUD.clear();
+
+                }
+
+
+                // Banner de conclusão.
+                if (
+                    !MissaoHUD._suppressCompleteBanner
+                ) {
+
+                    MissaoHUD.notifyComplete(
+                        id,
+                        questName
                     );
 
                 }
@@ -1216,7 +1783,9 @@ Imported.MissaoHUD = true;
             function(id, hidePopup) {
 
                 var wasTracked =
-                    Galv.QUEST.isTracked();
+                    Galv.QUEST.isTracked
+                        ? Galv.QUEST.isTracked()
+                        : 0;
 
 
                 var result =
@@ -1230,9 +1799,11 @@ Imported.MissaoHUD = true;
                     wasTracked === id
                 ) {
 
-                    MissaoHUD.syncFromGalv(
-                        false
+                    _Galv_QUEST_track.call(
+                        this
                     );
+
+                    MissaoHUD.clear();
 
                 }
 
@@ -1243,7 +1814,7 @@ Imported.MissaoHUD = true;
 
 
         console.log(
-            "MissaoHUD: integração com Galv_QuestLog instalada."
+            "MissaoHUD v0.3.0: integração com Galv_QuestLog instalada."
         );
 
     }
