@@ -1,78 +1,172 @@
-# Missão HUD - RPG Maker MV
+# MissaoHUD — RPG Maker MV
 
-Plugin desenvolvido para o projeto acadêmico **Missão UAI**, utilizando o RPG Maker MV.
+Plugin desenvolvido para adicionar uma **HUD permanente de missões** ao RPG Maker MV, integrada ao **Galv's Quest Log**.
 
-O `MissaoHUD` adiciona uma HUD permanente no canto superior direito da tela para exibir a missão atualmente rastreada e seu objetivo atual.
+O projeto foi criado originalmente para o jogo educacional **Missão UAI**, desenvolvido como Trabalho de Conclusão de Curso.
 
-A partir da versão **0.2.1**, o plugin possui integração automática com o **Galv's Quest Log v1.3**, acompanhando tanto mudanças de objetivos realizadas por eventos quanto a troca manual da missão rastreada dentro do próprio Quest Log.
+A principal função do plugin é permitir que o jogador acompanhe a missão rastreada e o objetivo atual diretamente pela tela do mapa, sem precisar abrir constantemente o Diário de Missões.
 
-> O MissaoHUD não substitui o Galv's Quest Log. Ele funciona como um complemento visual para apresentar ao jogador o objetivo atual durante a exploração.
+---
+
+## Versão atual
+
+**v0.3.0**
+
+Versão atualmente em desenvolvimento e testes.
+
+A versão 0.3.0 adiciona um sistema visual de **Missão Concluída**, além de ampliar a integração com o Galv's Quest Log e preparar o plugin para funcionamento conjunto com o **TutorialHUD**.
 
 ---
 
 ## Funcionalidades
 
-- Exibição da missão atual no canto superior direito
-- Exibição automática do objetivo atual
-- Integração com Galv's Quest Log
-- Sincronização com o rastreamento manual realizado no Quest Log
-- Atualização automática quando um objetivo é ativado
-- Ocultação automática durante diálogos
-- Pequeno atraso após diálogos para evitar piscadas na interface
-- Entrada da HUD através de efeito de fade
-- Atraso de aproximadamente 2 segundos ao rastrear uma nova missão
-- Indicador `Novo` para missões recém-rastreadas
-- Indicador `Novo` exibido durante aproximadamente 10 segundos
-- Salvamento do estado da HUD através do `$gameSystem`
-- Possibilidade de esconder e mostrar a HUD manualmente
-- Possibilidade de utilizar a HUD sem o Galv's Quest Log
-- Visual compacto desenvolvido para RPG Maker MV
+O MissaoHUD possui:
+
+- HUD permanente no canto superior direito;
+- exibição da missão atualmente rastreada;
+- exibição automática do objetivo atual;
+- integração com o Galv's Quest Log;
+- atualização automática quando um objetivo muda;
+- suporte ao rastreamento manual pelo Quest Log;
+- indicador **Novo** ao rastrear uma nova missão;
+- atraso configurável antes da exibição de uma nova missão;
+- fade-in e fade-out;
+- ocultação durante diálogos;
+- atraso de segurança após diálogos;
+- design compacto com bordas quadradas;
+- integração com missões principais e secundárias;
+- novo aviso central de **Missão Concluída**;
+- animação de entrada e saída no aviso de conclusão;
+- suporte opcional a efeito sonoro de conclusão;
+- possibilidade de concluir uma missão silenciosamente;
+- compatibilidade planejada com o **TutorialHUD**.
 
 ---
 
-## Requisitos
+# Estrutura visual
 
-O plugin foi desenvolvido para:
-
-- RPG Maker MV
-- JavaScript
-- Galv's Quest Log v1.3
-
-Para utilizar a integração automática com o sistema de missões, é necessário possuir o arquivo:
+A HUD principal apresenta:
 
 ```text
-Galv_QuestLog.js
+┌──────────────────────────┐
+│ MISSÃO ATUAL        Novo │
+│ ──────────────────────── │
+│ Em Busca do Passaporte   │
+│ • Converse com vovó      │
+└──────────────────────────┘
 ```
 
-ativo no projeto.
+A HUD permanece no canto superior direito da tela.
 
----
-
-## Estrutura do repositório
+O indicador:
 
 ```text
-missao-hud-rpg-maker-mv/
-├── MissaoHUD.js
-├── README.md
-├── LICENSE
-└── .gitignore
+Novo
+```
+
+é exibido temporariamente quando uma nova missão passa a ser rastreada.
+
+---
+
+# Missão concluída
+
+A versão `0.3.0` adiciona uma nova notificação central.
+
+Quando uma missão é concluída:
+
+```javascript
+Galv.QUEST.complete(id);
+```
+
+o MissaoHUD pode apresentar:
+
+```text
+┌──────────────────────────────────────┐
+│                                      │
+│          MISSÃO CONCLUÍDA            │
+│          ───────────────             │
+│                                      │
+│       Em Busca do Passaporte         │
+│                                      │
+└──────────────────────────────────────┘
+```
+
+O aviso aparece no centro da tela através de uma animação suave.
+
+O fluxo é:
+
+```text
+Missão concluída
+       ↓
+Pequeno atraso
+       ↓
+Fade-in
+       ↓
+MISSÃO CONCLUÍDA
+Nome da missão
+       ↓
+Permanece na tela
+       ↓
+Fade-out
+```
+
+Também pode ser reproduzido um efeito sonoro configurável.
+
+---
+
+# Dependências
+
+O plugin utiliza:
+
+- **RPG Maker MV**
+- **Galv's Quest Log**
+
+O Galv's Quest Log deve estar instalado e ativo.
+
+---
+
+# Compatibilidade com TutorialHUD
+
+Quando utilizado juntamente com o TutorialHUD, a ordem recomendada é:
+
+```text
+Galv_QuestLog
+MissaoHUD
+TutorialHUD
+```
+
+O MissaoHUD continua responsável pela missão rastreada.
+
+O TutorialHUD pode ser utilizado simultaneamente para fornecer instruções adicionais ao jogador.
+
+Exemplo:
+
+```text
+TutorialHUD                            MissaoHUD
+
+┌──────────────────────────┐          ┌──────────────────────┐
+│ MOVIMENTAÇÃO             │          │ MISSÃO ATUAL         │
+│                          │          │ Conclua o Tutorial   │
+│ Use as teclas para andar │          │ • Aprenda a andar    │
+│                          │          └──────────────────────┘
+│         [ ↑ ]            │
+│      [←][↓][→]           │
+└──────────────────────────┘
+
+Canto superior esquerdo                Canto superior direito
 ```
 
 ---
 
-## Instalação
+# Instalação
 
-### 1. Obtenha o plugin
-
-Baixe ou copie o arquivo:
+1. Baixe o arquivo:
 
 ```text
 MissaoHUD.js
 ```
 
-### 2. Adicione ao projeto
-
-Coloque o arquivo dentro da pasta:
+2. Copie o arquivo para:
 
 ```text
 SeuProjeto/
@@ -81,192 +175,505 @@ SeuProjeto/
         └── MissaoHUD.js
 ```
 
-### 3. Abra o RPG Maker MV
+3. Abra o projeto no RPG Maker MV.
 
-No RPG Maker MV, acesse:
+4. Acesse:
 
 ```text
-Ferramentas → Gerenciador de Plugins
+Ferramentas
+→ Gerenciador de Plugins
 ```
 
-### 4. Adicione o plugin
-
-Adicione:
+5. Adicione:
 
 ```text
 MissaoHUD
 ```
 
-e configure o status como:
+6. Defina o plugin como:
 
 ```text
 ON
 ```
 
-### 5. Ordem dos plugins
-
-Quando utilizado juntamente com o Galv's Quest Log, o `MissaoHUD` deve ficar **abaixo** dele.
+7. Coloque o MissaoHUD abaixo do Galv's Quest Log.
 
 Exemplo:
 
 ```text
-Galv_QuestLog    ON
-MissaoHUD        ON
+Galv_QuestLog
+MissaoHUD
 ```
 
-Essa ordem é importante porque o `MissaoHUD` estende algumas funções já criadas pelo Galv's Quest Log.
+Caso também utilize o TutorialHUD:
+
+```text
+Galv_QuestLog
+MissaoHUD
+TutorialHUD
+```
 
 ---
 
-## Como funciona a integração
+# Parâmetros da HUD
 
-O Galv's Quest Log continua sendo responsável pelo sistema principal de missões.
+## Largura
 
-Ele controla:
+Define a largura da HUD principal.
 
-- missões ativas;
-- missões concluídas;
-- missões falhadas;
-- objetivos;
-- categorias;
-- missão rastreada;
-- arquivo `Quests.txt`.
-
-O `MissaoHUD` utiliza essas informações para apresentar a missão atual durante o jogo.
-
-A integração é realizada sem alterar diretamente o arquivo:
+Valor padrão:
 
 ```text
-Galv_QuestLog.js
+250
 ```
-
-O plugin intercepta determinadas funções públicas do Galv e executa a sincronização da HUD depois que o comportamento original é concluído.
 
 ---
 
-## Arquivo Quests.txt
+## Altura
 
-As missões continuam sendo definidas normalmente pelo Galv's Quest Log através do arquivo:
+Define a altura da HUD principal.
 
-```text
-data/Quests.txt
-```
-
-Exemplo:
+Valor padrão:
 
 ```text
-<quest 1:Em Busca do Passaporte|1|0>
-Converse com vovó,Converse com sua mãe,Pegue seu cartão,Realize o processo no computador
-Você conseguiu emitir seu passaporte.
-Seu objetivo é realizar todo o processo necessário para emitir seu primeiro passaporte.
-</quest>
+92
 ```
-
-O `MissaoHUD` lê diretamente os dados carregados pelo Galv's Quest Log.
-
-Por isso, não é necessário cadastrar novamente dentro do `MissaoHUD.js`:
-
-- nome da missão;
-- nome dos objetivos;
-- quantidade de objetivos.
-
-Alterações realizadas no `Quests.txt` são automaticamente refletidas pela HUD.
 
 ---
 
-## Rastreamento de uma missão
+## Margem
 
-Para rastrear uma missão através do Galv's Quest Log:
+Define a distância da HUD em relação às bordas da tela.
+
+Valor padrão:
+
+```text
+12
+```
+
+---
+
+## AtrasoNovaMissao
+
+Tempo, em frames, antes de uma missão recém-rastreada aparecer.
+
+Valor padrão:
+
+```text
+120
+```
+
+Considerando aproximadamente 60 FPS:
+
+```text
+120 frames ≈ 2 segundos
+```
+
+---
+
+## TempoNovo
+
+Tempo durante o qual o texto:
+
+```text
+Novo
+```
+
+permanece visível.
+
+Valor padrão:
+
+```text
+600
+```
+
+Aproximadamente:
+
+```text
+10 segundos
+```
+
+---
+
+## AtrasoAposDialogo
+
+Tempo de segurança após o fechamento de uma caixa de diálogo.
+
+Isso evita que a HUD apareça e desapareça rapidamente durante mudanças entre mensagens.
+
+Valor padrão:
+
+```text
+30
+```
+
+---
+
+## VelocidadeFade
+
+Controla a velocidade da animação de fade da HUD principal.
+
+Valor padrão:
+
+```text
+18
+```
+
+---
+
+# Parâmetros de conclusão
+
+## LarguraConclusao
+
+Largura do banner central de missão concluída.
+
+Valor padrão:
+
+```text
+440
+```
+
+---
+
+## AlturaConclusao
+
+Altura do banner central.
+
+Valor padrão:
+
+```text
+96
+```
+
+---
+
+## AtrasoConclusao
+
+Tempo entre a conclusão da missão e o início da animação.
+
+Valor padrão:
+
+```text
+20
+```
+
+---
+
+## TempoConclusao
+
+Tempo em que o aviso permanece completamente visível.
+
+Valor padrão:
+
+```text
+180
+```
+
+Em aproximadamente 60 FPS:
+
+```text
+180 frames ≈ 3 segundos
+```
+
+---
+
+## FadeConclusao
+
+Velocidade da animação de entrada e saída do banner.
+
+Valor padrão:
+
+```text
+18
+```
+
+---
+
+## SomConclusao
+
+Permite selecionar um arquivo da pasta:
+
+```text
+audio/se/
+```
+
+para ser executado quando o banner aparecer.
+
+O parâmetro pode ser deixado vazio.
+
+---
+
+## VolumeConclusao
+
+Volume do efeito sonoro.
+
+Valor padrão:
+
+```text
+80
+```
+
+---
+
+## PitchConclusao
+
+Pitch do efeito sonoro.
+
+Valor padrão:
+
+```text
+100
+```
+
+---
+
+# Integração com Galv's Quest Log
+
+O MissaoHUD acompanha automaticamente chamadas realizadas pelo Galv's Quest Log.
+
+---
+
+## Rastrear missão
 
 ```javascript
 Galv.QUEST.track(1);
 ```
 
-O `MissaoHUD` detectará automaticamente a alteração.
-
-Não é necessário executar nenhum comando adicional.
-
-Por exemplo:
-
-```javascript
-Galv.QUEST.activate(1);
-Galv.QUEST.track(1);
-Galv.QUEST.objective(1,0,'activate');
-```
-
-A HUD passará a exibir automaticamente a missão de ID `1`.
+A HUD passa a mostrar automaticamente a missão rastreada.
 
 ---
 
-## Rastreamento manual pelo Quest Log
+## Alterar objetivo
 
-O jogador também pode trocar a missão rastreada diretamente através da interface do Galv's Quest Log.
+Exemplo:
 
-Por exemplo:
+```javascript
+Galv.QUEST.objective(1, 0, 'complete');
+Galv.QUEST.objective(1, 1, 'activate');
+```
+
+O MissaoHUD identifica a alteração e passa a apresentar o novo objetivo ativo.
+
+---
+
+## Concluir missão
+
+```javascript
+Galv.QUEST.complete(1);
+```
+
+Na versão 0.3.0, essa chamada também pode gerar o aviso:
 
 ```text
-História Principal
-    Em Busca do Passaporte
+MISSÃO CONCLUÍDA
 
-Missões Secundárias
-    O Relógio Quebrado
+Em Busca do Passaporte
 ```
 
-Caso o jogador selecione:
-
-```text
-O Relógio Quebrado
-```
-
-como missão rastreada, o Galv's Quest Log executa internamente sua função de rastreamento.
-
-O `MissaoHUD` identifica essa alteração e atualiza automaticamente sua interface.
-
-Assim, não é necessário criar eventos adicionais para sincronizar a HUD quando o jogador troca manualmente de missão.
+Caso a missão concluída estivesse sendo rastreada, a HUD principal é limpa.
 
 ---
 
-## Remover rastreamento
+## Falhar missão
 
-Caso o jogador selecione novamente uma missão que já está sendo rastreada, o Galv's Quest Log remove o rastreamento.
+```javascript
+Galv.QUEST.fail(1);
+```
 
-Quando nenhuma missão estiver sendo rastreada, o `MissaoHUD` também será ocultado automaticamente.
+Caso a missão falhada esteja sendo rastreada, ela deixa de permanecer na HUD principal.
 
 ---
 
-## Atualização de objetivos
+# Script Calls do MissaoHUD
 
-Quando um objetivo for concluído:
-
-```javascript
-Galv.QUEST.objective(1,0,'complete');
-```
-
-e o próximo for ativado:
+## Ocultar
 
 ```javascript
-Galv.QUEST.objective(1,1,'activate');
+MissaoHUD.hide();
 ```
 
-o `MissaoHUD` identifica automaticamente o novo objetivo.
+Oculta temporariamente a HUD principal.
 
-Exemplo completo:
+---
+
+## Mostrar
 
 ```javascript
-Galv.QUEST.objective(1,0,'complete');
-Galv.QUEST.objective(1,1,'activate');
+MissaoHUD.show();
 ```
 
-A HUD pode mudar automaticamente de:
+Mostra novamente a HUD.
+
+---
+
+## Limpar
+
+```javascript
+MissaoHUD.clear();
+```
+
+Remove da HUD os dados atualmente apresentados.
+
+---
+
+## Sincronizar
+
+```javascript
+MissaoHUD.sync();
+```
+
+Força uma nova leitura da missão rastreada pelo Galv's Quest Log.
+
+---
+
+# Exibição manual
+
+Também é possível utilizar a HUD sem depender diretamente de uma missão do Galv.
+
+Exemplo:
+
+```javascript
+MissaoHUD.set(
+    "Missão de Teste",
+    "Encontre o objeto"
+);
+```
+
+Isso produzirá algo semelhante a:
 
 ```text
 MISSÃO ATUAL
 
-Em Busca do Passaporte
-• Converse com vovó
+Missão de Teste
+• Encontre o objeto
 ```
 
-para:
+---
+
+# Concluir missão silenciosamente
+
+Algumas missões podem não precisar do grande aviso central.
+
+Para isso:
+
+```javascript
+MissaoHUD.silentComplete(id);
+```
+
+Exemplo:
+
+```javascript
+MissaoHUD.silentComplete(6);
+```
+
+A missão é concluída normalmente, mas não apresenta:
+
+```text
+MISSÃO CONCLUÍDA
+```
+
+Esse recurso foi pensado inicialmente para a:
+
+```text
+Quest 6 — Quest Exemplo
+```
+
+utilizada pelo TutorialHUD.
+
+Como essa missão existe apenas para ensinar o funcionamento do rastreamento, sua conclusão não precisa receber o mesmo destaque de uma missão narrativa.
+
+---
+
+# Mostrar conclusão manualmente
+
+Também é possível solicitar manualmente uma notificação:
+
+```javascript
+MissaoHUD.notifyComplete(id);
+```
+
+Exemplo:
+
+```javascript
+MissaoHUD.notifyComplete(2);
+```
+
+O plugin tenta obter automaticamente o nome da missão.
+
+Também existe suporte interno para fornecer diretamente o nome:
+
+```javascript
+MissaoHUD.notifyComplete(
+    2,
+    "O Relógio Quebrado"
+);
+```
+
+---
+
+# Rastreamento manual
+
+O plugin também acompanha alterações realizadas diretamente pelo jogador dentro do Galv's Quest Log.
+
+Exemplo:
+
+```text
+Em Busca do Passaporte
+        ↓
+Jogador abre Missões
+        ↓
+Seleciona O Relógio Quebrado
+        ↓
+Define como rastreada
+        ↓
+MissaoHUD atualiza automaticamente
+```
+
+Não é necessário criar um evento separado apenas para atualizar a HUD.
+
+---
+
+# Comportamento durante diálogos
+
+Quando uma caixa de diálogo é aberta, a HUD principal é escondida através de fade.
+
+Isso evita que elementos da interface disputem espaço visual com os diálogos.
+
+Fluxo:
+
+```text
+HUD visível
+    ↓
+Diálogo começa
+    ↓
+Fade-out
+    ↓
+Diálogo termina
+    ↓
+Pequeno tempo de segurança
+    ↓
+Fade-in
+```
+
+Esse sistema também reduz o problema de piscadas causado por múltiplas páginas de diálogo.
+
+---
+
+# Sistema de objetivos
+
+O plugin procura o objetivo atualmente ativo dentro da missão rastreada.
+
+Exemplo:
+
+```text
+Quest 1 — Em Busca do Passaporte
+
+✓ Converse com vovó
+• Converse com sua mãe
+○ Pegue seu cartão
+```
+
+A HUD mostra:
 
 ```text
 MISSÃO ATUAL
@@ -275,484 +682,246 @@ Em Busca do Passaporte
 • Converse com sua mãe
 ```
 
-Não é necessário utilizar um segundo comando específico do `MissaoHUD`.
+Quando o evento executar:
+
+```javascript
+Galv.QUEST.objective(1, 1, 'complete');
+Galv.QUEST.objective(1, 2, 'activate');
+```
+
+a HUD passa para:
+
+```text
+MISSÃO ATUAL
+
+Em Busca do Passaporte
+• Pegue seu cartão
+```
 
 ---
 
-## Comportamento visual
+# Uso com o TutorialHUD
 
-Quando uma nova missão é rastreada, a HUD não aparece imediatamente.
+Durante o tutorial do projeto Missão UAI, o MissaoHUD continua funcionando normalmente.
 
-O comportamento padrão é:
+A missão utilizada é:
 
 ```text
-Missão rastreada
+Quest 5 — Conclua o Tutorial
+```
+
+Enquanto o TutorialHUD ensina os controles, o MissaoHUD mostra o objetivo correspondente.
+
+Exemplo:
+
+```text
+TutorialHUD:
+
+MOVIMENTAÇÃO
+
+Use as teclas direcionais.
+
+       [ ↑ ]
+    [←][↓][→]
+```
+
+ao mesmo tempo em que:
+
+```text
+MissaoHUD:
+
+MISSÃO ATUAL
+
+Conclua o Tutorial
+• Aprenda a se movimentar
+```
+
+---
+
+# Quest Exemplo
+
+O TutorialHUD utiliza uma missão temporária:
+
+```text
+Quest 6 — Quest Exemplo
+```
+
+Ela serve para ensinar o jogador a alterar manualmente a missão rastreada.
+
+Fluxo:
+
+```text
+Conclua o Tutorial
         ↓
+Abra Missões
+        ↓
+Rastreie Quest Exemplo
+        ↓
+MissaoHUD muda automaticamente
+        ↓
+TutorialHUD detecta a ação
+        ↓
+Volte a rastrear Conclua o Tutorial
+```
+
+Ao terminar sua função, a Quest Exemplo pode ser concluída através de:
+
+```javascript
+MissaoHUD.silentComplete(6);
+```
+
+evitando uma notificação de conclusão desnecessária.
+
+---
+
+# Fluxo de exemplo
+
+```text
+Quest ativada
+     ↓
+Galv.QUEST.track(id)
+     ↓
 Aguarda aproximadamente 2 segundos
-        ↓
-HUD aparece através de fade
-        ↓
-Exibe "Novo"
-        ↓
-"Novo" permanece por aproximadamente 10 segundos
-        ↓
-Indicador desaparece
-```
-
-A missão continua sendo exibida normalmente após o desaparecimento do indicador.
-
----
-
-## Comportamento durante diálogos
-
-Durante caixas de diálogo do RPG Maker MV, a HUD é temporariamente escondida.
-
-Esse comportamento evita que a HUD fique sobreposta aos diálogos e ajuda a manter a tela mais limpa.
-
-Depois que o diálogo termina, existe um pequeno período de segurança antes da HUD reaparecer.
-
-Isso evita o efeito de piscada que poderia ocorrer ao avançar rapidamente mensagens utilizando:
-
-```text
-Enter
-Espaço
-Clique
+     ↓
+MissaoHUD aparece
+     ↓
+"Novo"
+     ↓
+Jogador realiza objetivo
+     ↓
+Galv.QUEST.objective(...)
+     ↓
+HUD atualiza
+     ↓
+Último objetivo
+     ↓
+Galv.QUEST.complete(id)
+     ↓
+HUD principal desaparece
+     ↓
+MISSÃO CONCLUÍDA
+Nome da missão
 ```
 
 ---
 
-## Interface
+# Histórico de versões
 
-O estilo visual atual utiliza:
+## v0.3.0
 
-- largura compacta;
-- formato retangular;
-- cantos quadrados;
-- fundo escuro semitransparente;
-- borda laranja suave;
-- título `MISSÃO ATUAL` em tom alaranjado;
-- indicador `Novo` em amarelo;
-- texto da missão em branco;
-- objetivo atual exibido abaixo do nome da missão.
+Em desenvolvimento/testes.
 
-Exemplo:
+### Adicionado
 
-```text
-┌─────────────────────────────┐
-│ MISSÃO ATUAL          Novo  │
-│ ─────────────────────────── │
-│ Em Busca do Passaporte      │
-│ • Converse com vovó         │
-└─────────────────────────────┘
-```
+- sistema de aviso central de missão concluída;
+- animação de fade-in;
+- animação de fade-out;
+- pequena animação de escala;
+- nome da missão no banner;
+- suporte opcional a efeito sonoro;
+- fila de notificações de conclusão;
+- `MissaoHUD.notifyComplete(id)`;
+- `MissaoHUD.silentComplete(id)`;
+- integração planejada com TutorialHUD.
 
----
+### Alterado
 
-## Parâmetros
-
-Os principais parâmetros podem ser alterados através do Gerenciador de Plugins.
-
-### Largura
-
-Define a largura da HUD.
-
-Valor padrão:
-
-```text
-250
-```
-
-### Altura
-
-Define a altura da HUD.
-
-Valor padrão:
-
-```text
-92
-```
-
-### Margem
-
-Define a distância entre a HUD e as bordas da tela.
-
-Valor padrão:
-
-```text
-12
-```
-
-### AtrasoNovaMissao
-
-Define quantos frames serão aguardados antes de uma nova missão aparecer.
-
-Valor padrão:
-
-```text
-120
-```
-
-Em aproximadamente 60 FPS:
-
-```text
-120 frames ≈ 2 segundos
-```
-
-### TempoNovo
-
-Define por quanto tempo a indicação `Novo` será exibida.
-
-Valor padrão:
-
-```text
-600
-```
-
-Em aproximadamente 60 FPS:
-
-```text
-600 frames ≈ 10 segundos
-```
-
-### AtrasoAposDialogo
-
-Define um pequeno intervalo depois do fechamento de uma mensagem antes da HUD reaparecer.
-
-Isso ajuda a impedir piscadas durante diálogos.
-
-### VelocidadeFade
-
-Controla a velocidade do efeito de entrada e saída da HUD.
+- conclusão de uma missão rastreada passa a limpar a HUD principal;
+- integração com `Galv.QUEST.complete()` ampliada;
+- integração com `Galv.QUEST.fail()` revisada;
+- documentação atualizada.
 
 ---
 
-## Comandos do MissaoHUD
-
-A maior parte da progressão normal deve ser controlada pelo Galv's Quest Log.
-
-Mesmo assim, existem alguns comandos auxiliares.
-
----
-
-### Forçar sincronização
-
-Para obrigar a HUD a verificar novamente a missão rastreada pelo Galv:
-
-```javascript
-MissaoHUD.sync();
-```
-
-Normalmente esse comando não é necessário.
-
----
-
-### Esconder temporariamente
-
-```javascript
-MissaoHUD.hide();
-```
-
-Pode ser utilizado em cenas nas quais a HUD não deve aparecer.
-
-Por exemplo:
-
-```text
-Computador
-Cutscene
-Tela especial
-Minigame
-```
-
----
-
-### Mostrar novamente
-
-```javascript
-MissaoHUD.show();
-```
-
-O conteúdo anterior continua armazenado.
-
----
-
-### Limpar a HUD
-
-```javascript
-MissaoHUD.clear();
-```
-
-Esse comando remove o conteúdo exibido e limpa o rastreamento visual da HUD.
-
----
-
-### Definir uma missão manualmente
-
-Mesmo sendo desenvolvido para integração com o Galv's Quest Log, o plugin também permite exibir informações manualmente.
-
-Exemplo:
-
-```javascript
-MissaoHUD.set(
-    "O Relógio Quebrado",
-    "Consiga dinheiro para o conserto"
-);
-```
-
-Isso pode ser útil para testes ou sistemas que não utilizem o Galv's Quest Log.
-
----
-
-## Exemplo no projeto Missão UAI
-
-### Início da missão
-
-No final da introdução:
-
-```javascript
-Galv.QUEST.activate(1);
-Galv.QUEST.track(1);
-
-Galv.QUEST.objective(1,0,'activate');
-Galv.QUEST.objective(1,1,'hide');
-Galv.QUEST.objective(1,2,'hide');
-Galv.QUEST.objective(1,3,'hide');
-Galv.QUEST.objective(1,4,'hide');
-Galv.QUEST.objective(1,5,'hide');
-Galv.QUEST.objective(1,6,'hide');
-Galv.QUEST.objective(1,7,'hide');
-Galv.QUEST.objective(1,8,'hide');
-Galv.QUEST.objective(1,9,'hide');
-Galv.QUEST.objective(1,10,'hide');
-```
-
-A HUD será atualizada automaticamente.
-
----
-
-### Conversa com vovó
-
-Ao finalizar corretamente a conversa:
-
-```javascript
-Galv.QUEST.objective(1,0,'complete');
-Galv.QUEST.objective(1,1,'activate');
-```
-
-O próximo objetivo será exibido automaticamente.
-
----
-
-### Conversa com a mãe
-
-```javascript
-Galv.QUEST.objective(1,1,'complete');
-Galv.QUEST.objective(1,2,'activate');
-```
-
----
-
-### Obtenção do cartão
-
-```javascript
-Galv.QUEST.objective(1,2,'complete');
-Galv.QUEST.objective(1,3,'activate');
-```
-
----
-
-### Processo no computador
-
-Depois de finalizar solicitação, pagamento e agendamento:
-
-```javascript
-Galv.QUEST.objective(1,3,'complete');
-Galv.QUEST.objective(1,4,'activate');
-```
-
-A HUD passará a indicar:
-
-```text
-Espere até dar o horário
-```
-
----
-
-## Missões secundárias
-
-O sistema também funciona com missões secundárias.
-
-Exemplo:
-
-```javascript
-Galv.QUEST.activate(2);
-```
-
-Para rastreá-la:
-
-```javascript
-Galv.QUEST.track(2);
-```
-
-O `MissaoHUD` buscará automaticamente:
-
-- nome da Quest 2;
-- objetivos da Quest 2;
-- objetivo ativo;
-- estado de rastreamento.
-
-Não é necessário cadastrar os textos da missão dentro do plugin.
-
----
-
-## Salvamento
-
-O estado necessário para funcionamento da HUD é armazenado dentro do:
-
-```javascript
-$gameSystem
-```
-
-Como `$gameSystem` faz parte dos dados de salvamento do RPG Maker MV, informações relacionadas à HUD podem permanecer entre sessões do jogo.
-
----
-
-## Compatibilidade com Galv's Quest Log
-
-Versão utilizada durante o desenvolvimento:
-
-```text
-Galv's Quest Log v1.3
-```
-
-O `MissaoHUD` não altera o arquivo original do Galv.
-
-A integração é feita através de extensão de funções JavaScript em tempo de execução.
-
-Entre as funções observadas estão:
-
-```javascript
-Galv.QUEST.track();
-Galv.QUEST.objective();
-Galv.QUEST.complete();
-Galv.QUEST.fail();
-```
-
-Isso permite preservar o plugin original e manter o `MissaoHUD` como um componente separado.
-
----
-
-## Projeto Missão UAI
-
-O `MissaoHUD` foi desenvolvido inicialmente para o Trabalho de Conclusão de Curso **Missão UAI**.
-
-O projeto utiliza RPG Maker MV para desenvolver uma experiência educativa relacionada ao processo de emissão de passaporte.
-
-O fluxo principal planejado inclui:
-
-1. Conversar com vovó
-2. Conversar com a mãe
-3. Obter o cartão pré-pago
-4. Realizar o processo no computador
-5. Esperar o horário do atendimento
-6. Sair do prédio
-7. Utilizar o transporte até o shopping
-8. Encontrar a UAI
-9. Esperar o atendimento
-10. Tirar a foto
-11. Receber o passaporte
-
-Também existem missões secundárias planejadas, como:
-
-- O Relógio Quebrado
-- O Notebook Velho
-- Viajar o Mundo
-
----
-
-## Tecnologias utilizadas
-
-- JavaScript
-- RPG Maker MV
-- Galv's Quest Log
-- Git
-- GitHub
-- IntelliJ IDEA
-
----
-
-## Desenvolvimento
-
-O plugin é desenvolvido de maneira independente do projeto principal do RPG Maker.
-
-Fluxo utilizado:
-
-```text
-IntelliJ IDEA
-      ↓
-Desenvolvimento do MissaoHUD.js
-      ↓
-Git
-      ↓
-GitHub
-      ↓
-Versão do plugin
-      ↓
-RPG Maker MV
-```
-
-Isso permite manter um histórico de alterações e evolução do componente.
-
----
-
-## Versionamento
-
-O projeto utiliza versionamento semântico.
-
-Formato:
-
-```text
-MAJOR.MINOR.PATCH
-```
-
-Exemplo:
-
-```text
-0.2.1
-```
-
-Onde:
-
-```text
-0 = ainda em desenvolvimento
-2 = segunda evolução relevante de funcionalidades
-1 = ajuste/correção dessa versão
-```
-
----
-
-## Versão atual
-
-```text
-0.2.1
-```
-
-Principais alterações desta versão:
-
-- integração automática com Galv's Quest Log;
-- sincronização do rastreamento manual;
-- leitura direta dos dados de `Quests.txt`;
-- remoção da duplicação de nomes e objetivos;
-- novo visual da HUD;
-- borda quadrada em tom alaranjado;
+## v0.2.1
+
+- integração direta com Galv's Quest Log;
+- rastreamento manual sincronizado;
+- leitura automática da missão rastreada;
+- leitura automática do objetivo ativo;
+- suporte a alteração de objetivos;
 - indicador `Novo`;
-- atraso antes da exibição de uma nova missão;
-- efeito de fade;
-- correção de piscadas durante diálogos.
+- atraso de aproximadamente dois segundos para novas missões;
+- correção de piscadas durante diálogos;
+- fade da HUD;
+- design quadrado;
+- borda em tom alaranjado;
+- largura padrão de 250 pixels.
 
 ---
 
-## Autor
+# Roadmap
+
+## v0.3.0
+
+- [x] estrutura do banner de missão concluída;
+- [x] nome da missão no banner;
+- [x] fade-in;
+- [x] fade-out;
+- [x] animação suave de escala;
+- [x] suporte a som;
+- [x] conclusão silenciosa;
+- [x] preparação para TutorialHUD;
+- [ ] testes completos dentro do RPG Maker MV;
+- [ ] validação da integração MissaoHUD + TutorialHUD;
+- [ ] ajustes finos de design;
+- [ ] escolha definitiva do efeito sonoro.
+
+---
+
+## Próximas versões
+
+- [ ] aviso discreto de objetivo atualizado;
+- [ ] novas opções de personalização;
+- [ ] configuração de cores pelo Gerenciador de Plugins;
+- [ ] controle individual de notificações;
+- [ ] melhorias nas animações;
+- [ ] tratamento visual para missão falhada;
+- [ ] testes adicionais de compatibilidade;
+- [ ] aprimorar integração com outros sistemas de HUD.
+
+---
+
+# Desenvolvimento
+
+O MissaoHUD surgiu de uma necessidade específica encontrada durante o desenvolvimento do **Missão UAI**.
+
+O Galv's Quest Log oferece o gerenciamento das missões, porém normalmente o jogador precisa acessar a interface de missões para verificar seus objetivos.
+
+O MissaoHUD complementa esse sistema apresentando a missão rastreada permanentemente durante a exploração.
+
+O plugin também passou a receber novas funcionalidades a partir de testes realizados com o jogo, como:
+
+```text
+melhor orientação
+        ↓
+HUD permanente
+        ↓
+feedback de nova missão
+        ↓
+feedback de conclusão
+```
+
+---
+
+# Estado do projeto
+
+O plugin continua em desenvolvimento.
+
+A versão:
+
+```text
+v0.3.0
+```
+
+deve ser considerada uma versão de testes até que a integração completa com o **TutorialHUD** seja validada dentro do RPG Maker MV.
+
+---
+
+# Autor
 
 **Gustavo Pestana**
 
-Projeto desenvolvido inicialmente como parte do TCC **Missão UAI**.
+Plugin desenvolvido para RPG Maker MV como parte do desenvolvimento do jogo educacional **Missão UAI**.
+
+---
